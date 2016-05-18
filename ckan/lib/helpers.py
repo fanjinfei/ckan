@@ -1,10 +1,10 @@
 # coding=UTF-8
 
-'''Helper functions
+"""Helper functions
 
 Consists of functions to typically be used within templates, but also
 available to Controllers. This module is available to templates as 'h'.
-'''
+"""
 import email.utils
 import datetime
 import logging
@@ -56,14 +56,14 @@ log = logging.getLogger(__name__)
 
 
 def _datestamp_to_datetime(datetime_):
-    ''' Converts a datestamp to a datetime.  If a datetime is provided it
+    """ Converts a datestamp to a datetime.  If a datetime is provided it
     just gets returned.
 
     :param datetime_: the timestamp
     :type datetime_: string or datetime
 
     :rtype: datetime
-    '''
+    """
     if isinstance(datetime_, basestring):
         try:
             datetime_ = date_str_to_datetime(datetime_)
@@ -105,7 +105,7 @@ def _datestamp_to_datetime(datetime_):
 
 
 def redirect_to(*args, **kw):
-    '''Issue a redirect: return an HTTP response with a ``302 Moved`` header.
+    """Issue a redirect: return an HTTP response with a ``302 Moved`` header.
 
     This is a wrapper for :py:func:`routes.redirect_to` that maintains the
     user's selected language when redirecting.
@@ -124,7 +124,7 @@ def redirect_to(*args, **kw):
 
         toolkit.redirect_to('dataset_read', id='changed')
 
-    '''
+    """
     kw['__ckan_no_root'] = True
     if are_there_flash_messages():
         kw['__no_cache__'] = True
@@ -132,15 +132,15 @@ def redirect_to(*args, **kw):
 
 
 def url(*args, **kw):
-    '''Create url adding i18n information if selected
-    wrapper for pylons.url'''
+    """Create url adding i18n information if selected
+    wrapper for pylons.url"""
     locale = kw.pop('locale', None)
     my_url = _pylons_default_url(*args, **kw)
     return _local_url(my_url, locale=locale, **kw)
 
 
 def get_site_protocol_and_host():
-    '''Return the protocol and host of the configured `ckan.site_url`.
+    """Return the protocol and host of the configured `ckan.site_url`.
     This is needed to generate valid, full-qualified URLs.
 
     If `ckan.site_url` is set like this::
@@ -150,7 +150,7 @@ def get_site_protocol_and_host():
     Then this function would return a tuple `('http', 'example.com')`
     If the setting is missing, `(None, None)` is returned instead.
 
-    '''
+    """
     site_url = config.get('ckan.site_url', None)
     if site_url is not None:
         parsed_url = urlparse.urlparse(site_url)
@@ -162,7 +162,7 @@ def get_site_protocol_and_host():
 
 
 def url_for(*args, **kw):
-    '''Return the URL for the given controller, action, id, etc.
+    """Return the URL for the given controller, action, id, etc.
 
     Usage::
 
@@ -179,7 +179,7 @@ def url_for(*args, **kw):
     This is a wrapper for :py:func:`routes.url_for` that adds some extra
     features that CKAN needs.
 
-    '''
+    """
     locale = kw.pop('locale', None)
     if locale and isinstance(locale, i18n.Locale):
         locale = i18n.get_identifier_from_locale_class(locale)
@@ -200,12 +200,12 @@ def url_for(*args, **kw):
 
 
 def url_for_static(*args, **kw):
-    '''Returns the URL for static content that doesn't get translated (eg CSS)
+    """Returns the URL for static content that doesn't get translated (eg CSS)
 
     It'll raise CkanUrlException if called with an external URL
 
     This is a wrapper for :py:func:`routes.url_for`
-    '''
+    """
     if args:
         url = urlparse.urlparse(args[0])
         url_is_external = (url.scheme != '' or url.netloc != '')
@@ -216,11 +216,11 @@ def url_for_static(*args, **kw):
 
 
 def url_for_static_or_external(*args, **kw):
-    '''Returns the URL for static content that doesn't get translated (eg CSS),
+    """Returns the URL for static content that doesn't get translated (eg CSS),
     or external URLs
 
     This is a wrapper for :py:func:`routes.url_for`
-    '''
+    """
     def fix_arg(arg):
         url = urlparse.urlparse(str(arg))
         url_is_relative = (url.scheme == '' and url.netloc == '' and
@@ -238,9 +238,9 @@ def url_for_static_or_external(*args, **kw):
 
 
 def is_url(*args, **kw):
-    '''
+    """
     Returns True if argument parses as a http, https or ftp URL
-    '''
+    """
     if not args:
         return False
     try:
@@ -257,14 +257,11 @@ def _local_url(url_to_amend, **kw):
     # using that locale .If return_to is provided this is used as the url
     # (as part of the language changing feature).
     # A locale of default will not add locale info to the url.
-    root=''
+
+    default_locale = False
+    locale = kw.pop('locale', None)
     no_root = kw.pop('__ckan_no_root', False)
     allowed_locales = ['default'] + i18n.get_locales()
-    default_locale = False
-    url_scheme, url_netloc, url_path, url_params, url_query, url_fragment = \
-        urlparse.urlparse(url_to_amend)
-
-    locale = kw.pop('locale', None)
     if locale and locale not in allowed_locales:
         locale = None
     if locale:
@@ -277,9 +274,9 @@ def _local_url(url_to_amend, **kw):
         except TypeError:
             default_locale = True
 
+    root = ''
     if kw.get('qualified', False):
         # if qualified is given we want the full url ie http://...
-
         protocol, host = get_site_protocol_and_host()
         root = _routes_default_url_for('/',
                                        qualified=True,
@@ -289,26 +286,27 @@ def _local_url(url_to_amend, **kw):
     # position in the url
     root_path = config.get('ckan.root_path', None)
     if root_path:
-        if '{{LANG}}' not in root_path:
-            error = 'ckan.root_path must include {{LANG}}'
-            raise ckan.exceptions.CkanUrlException(error)
-
+        # FIXME this can be written better once the merge
+        # into the ecportal core is done - Toby
+        # we have a special root specified so use that
         if default_locale:
-            root = re.sub('/{{LANG}}', '', root_path)
+            root_path = re.sub('/{{LANG}}', '', root_path)
         else:
-            root = re.sub('{{LANG}}', locale, root_path)
+            root_path = re.sub('{{LANG}}', str(locale), root_path)
         # make sure we don't have a trailing / on the root
-        if root[-1] == '/':
-            root = root[:-1]
-        url_path = '%s%s' % (root, url_path)
+        if root_path[-1] == '/':
+            root_path = root_path[:-1]
     else:
-        if not default_locale:
-            url_path = '/%s%s' % (locale, url_path)
-    url = urlparse.urlunparse((url_scheme, url_netloc, url_path, url_params,
-                               url_query, url_fragment))
+        if default_locale:
+            root_path = ''
+        else:
+            root_path = '/' + str(locale)
+
+    url_path = url_to_amend[len(root):]
+    url = '%s%s%s' % (root, root_path, url_path)
 
     # stop the root being added twice in redirects
-    if no_root:
+    if no_root and url_to_amend.startswith(root):
         url = url_to_amend[len(root):]
         if not default_locale:
             url = '/%s%s' % (locale, url)
@@ -321,7 +319,7 @@ def _local_url(url_to_amend, **kw):
 
 
 def url_is_local(url):
-    '''Returns True if url is local'''
+    """Returns True if url is local"""
     if not url or url.startswith('//'):
         return False
     parsed = urlparse.urlparse(url)
@@ -333,8 +331,8 @@ def url_is_local(url):
 
 
 def full_current_url():
-    ''' Returns the fully qualified current url (eg http://...) useful
-    for sharing etc '''
+    """ Returns the fully qualified current url (eg http://...) useful
+    for sharing etc """
     return (url_for(request.environ['CKAN_CURRENT_URL'], qualified=True))
 
 
@@ -432,7 +430,7 @@ class _Flash(object):
         return bool(session.get(self.session_key))
 
 flash = _Flash()
-# this is here for backwards compatability
+# this is here for backwards compatibility
 _flash = flash
 
 
