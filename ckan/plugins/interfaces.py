@@ -34,6 +34,7 @@ __all__ = [
     u'ITranslation',
     u'IUploader',
     u'IPermissionLabels',
+    u'IActivityEvent'
 ]
 
 from inspect import isclass
@@ -454,6 +455,7 @@ class IResourcePreview(Interface):
         rendered for the read page.
         The ``data_dict`` contains the resource and the package.
         '''
+
 
 class ITagController(Interface):
     u'''
@@ -934,13 +936,13 @@ class IAuthFunctions(Interface):
 
         See ``ckan/logic/auth/`` for more examples.
 
-        Note that by default, all auth functions provided by extensions are assumed
-        to require a validated user or API key, otherwise a
-        :py:class:`ckan.logic.NotAuthorized`: exception will be raised. This check
-        will be performed *before* calling the actual auth function. If you want
-        to allow anonymous access to one of your actions, its auth function must
-        be decorated with the ``auth_allow_anonymous_access`` decorator, available
-        on the plugins toolkit.
+        Note that by default, all auth functions provided by extensions are
+        assumed to require a validated user or API key, otherwise a
+        :py:class:`ckan.logic.NotAuthorized`: exception will be raised. This
+        check will be performed *before* calling the actual auth function. If
+        you want to allow anonymous access to one of your actions, its auth
+        function must be decorated with the ``auth_allow_anonymous_access``
+        decorator, available on the plugins toolkit.
 
         For example::
 
@@ -1267,8 +1269,6 @@ class IGroupForm(Interface):
 
     '''
 
-    ##### These methods control when the plugin is delegated to          #####
-
     def is_fallback(self):
         u'''
         Returns true if this provides the fallback behaviour, when no other
@@ -1303,10 +1303,6 @@ class IGroupForm(Interface):
         (`group`).
         '''
 
-    ##### End of control methods
-
-    ##### Hooks for customising the GroupController's behaviour          #####
-    ##### TODO: flesh out the docstrings a little more.                  #####
     def new_template(self):
         u'''
         Returns a string representing the location of the template to be
@@ -1401,7 +1397,6 @@ class IGroupForm(Interface):
         :rtype: (dictionary, dictionary)
         '''
 
-    ##### End of hooks                                                   #####
 
 class IFacets(Interface):
     u'''Customize the search facets shown on search pages.
@@ -1489,7 +1484,8 @@ class IFacets(Interface):
         '''
         return facets_dict
 
-    def organization_facets(self, facets_dict, organization_type, package_type):
+    def organization_facets(self, facets_dict, organization_type,
+                            package_type):
         u'''Modify and return the ``facets_dict`` for an organization's page.
 
         The ``package_type`` is the type of package that these facets apply to.
@@ -1623,7 +1619,7 @@ class IUploader(Interface):
 
         Optionally, this method can set the following two attributes
         on the class instance so they are set in the resource object:
-            
+
             filesize (int):  Uploaded file filesize.
             mimetype (str):  Uploaded file mimetype.
 
@@ -1685,4 +1681,83 @@ class IPermissionLabels(Interface):
 
         :returns: permission labels
         :rtype: list of unicode strings
+        '''
+
+
+class IActivityEvent(Interface):
+    u'''
+    Extensions inmplementing this interface can override or extend the legacy
+    activity system.
+    '''
+    def string_icons(self, string_icons):
+        u'''
+        Called to update the mapping of icons to activity types for
+        compatbility with legacy activty types. `string_icons` is a dict
+        mapping the activity type strings to the CSS class to be used for
+        displaying the icon. Ex:
+
+        .. code-block:: python
+
+            {
+                'new group': 'group',
+                'new user': 'user'
+            }
+
+        Update this dict in-place to add, remove, or change icons.
+
+        :param string_icons: A mutable mapping of activity types to icons.
+        :type string_icons: dict
+        '''
+
+    def snippet_functions(self, snippet_functions):
+        u'''
+        Called to update the mapping of activty types to functions that
+        expand the snippet. `snippet_functions` is a dict mapping activity type
+        strings to a callable which should return an HTML block. Ex:
+
+        .. code-block:: python
+
+            def get_snippet_actor(activity, detail):
+                return literal(
+                    '<span class="actor">{0}</span>'.format(
+                        h.linked_user(activity['user_id'], 0, 30)
+                    )
+                )
+
+            ...
+
+            def snippet_functions(self, snippet_functions):
+                snippet_functions['actor'] = get_snippet_actor
+
+        Update this dict in-place to add, remove, or change snippets.
+
+        :param snippet_functions: A mutable mapping of activity types to
+                                  snippets.
+        :type snippet_functions: dict
+        '''
+
+    def string_functions(self, string_functions):
+        u'''
+        Called to update the mapping of activity types to functions that return
+        translatable string descriptions of the activity types. Ex:
+
+
+        .. code-block:: python
+
+            def new_resource(context, activity):
+                return _(
+                    '{actor} added the resource {resource} to'
+                    ' the dataset {dataset}'
+                )
+
+            ...
+
+            def string_functions(self, string_functions):
+                string_functions['new resource'] = new_resource
+
+        Update this dict in-pace to add, remove, or change descriptions.
+
+        :param string_functions: A mutable mapping of activity types to
+                                 descriptions.
+        :type string_functions: dict
         '''

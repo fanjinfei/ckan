@@ -120,6 +120,16 @@ def plugins_update():
     import ckan.config.environment as environment
     environment.update_config()
 
+    # Update the internal activity mapping from any plugins that override it.
+    import ckan.plugins as p
+    import ckan.lib.activity_streams as act
+    import ckan.plugins.interfaces as interfaces
+
+    for plugin in p.PluginImplementations(interfaces.IActivityEvent):
+        plugin.string_icons(act.activity_stream_string_icons)
+        plugin.snippet_functions(act.activity_snippet_functions)
+        plugin.string_functions(act.activity_stream_string_functions)
+
 
 def load_all():
     '''
