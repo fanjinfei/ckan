@@ -191,7 +191,7 @@ def datastore_diff(context, data_dict):
 
     connection = db._get_engine(data_dict).connect()
     resources_sql = sqlalchemy.text(u'''CREATE TEMP TABLE temp_res (
-         like "{0}" INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES );'''.format(res_id))
+         like "{0}" INCLUDING DEFAULTS INCLUDING CONSTRAINTS);'''.format(res_id))
     results = connection.execute(resources_sql)
 
     data_dict['resource_id'] = 'temp_res'
